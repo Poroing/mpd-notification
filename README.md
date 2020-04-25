@@ -58,6 +58,11 @@ Just run `mpd-notification` to run it once. A systemd user service can be
 started and/or enabled with `systemctl --user start mpd-notification`
 or `systemctl --user enable mpd-notification`.
 
+When the `mpd-notification` process receives a SIGUSR1 signal, a notification with the current song
+will be sent. This can be done from the command line through the command
+
+	pkill -SIGUSR1 mpd-notificatio
+
 `mpd-notification` accepts some arguments:
 
 * *-h*: show help
@@ -70,6 +75,8 @@ or `systemctl --user enable mpd-notification`.
 * *-s PIXELS*: scale image to a maximum size *PIXELS* x *PIXELS* pixels, keeping
     ratio
 * *-t TIMEOUT*: notification timeout, *TIMEOUT* in seconds
+* *--show-time*: Show duration of the song played on mpd state changes and the elaplsed time when
+	the notification is asked for through a SIGHUP or SIGUSR1.
 * *-v*: verbose output
 * *-V*: print version information
 
@@ -86,8 +93,11 @@ look like this:
     oneline = true
     scale = 200
     timeout = 20
+	show_time = false
 
 Unused options can be commented or removed completely.
+
+The configuration parameter have the same effect as their corresponding command arguments.
 
 Artwork
 -------
