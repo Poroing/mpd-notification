@@ -37,7 +37,8 @@
 
 #define PROGNAME	"mpd-notification"
 
-#define OPT_FILE_WORKAROUND UCHAR_MAX + 1 
+#define OPT_FILE_WORKAROUND (UCHAR_MAX + 1)
+#define OPT_SHOW_TIME (UCHAR_MAX + 2)
 
 /*** received_signal ***/
 void received_signal(int signal);

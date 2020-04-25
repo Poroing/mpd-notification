@@ -21,6 +21,7 @@ const static struct option options_long[] = {
 	{ "version",	no_argument,		NULL,	'V' },
 	{ "notification-file-workaround",
 			no_argument,		NULL,	OPT_FILE_WORKAROUND },
+    { "show-time", no_argument, NULL, OPT_SHOW_TIME },
 	{ 0, 0, 0, 0 }
 };
 
@@ -487,6 +488,9 @@ int main(int argc, char ** argv) {
 			case OPT_FILE_WORKAROUND:
 				file_workaround++;
 				break;
+            case OPT_SHOW_TIME:
+                show_time = true;
+                break;
 		}
 	}
 
