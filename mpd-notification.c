@@ -1,11 +1,23 @@
 /*
- * (C) 2011-2020 by Christian Hesse <mail@eworm.de>
+ * (C) 2011-2021 by Christian Hesse <mail@eworm.de>
  *
- * This software may be used and distributed according to the terms
- * of the GNU General Public License, incorporated herein by reference.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 #include "mpd-notification.h"
+#include <errno.h>
 
 const static char optstring[] = "hH:m:op:s:t:vV";
 const static struct option options_long[] = {
@@ -251,43 +263,43 @@ int update_notification(int show_elapsed_time)
     char total_time_text[TIMES_TEXT_SIZE];
     char time_ratio_text[TIMES_RATIO_TEXT_SIZE];
 
-	char * notifystr = NULL;
-	GdkPixbuf * pixbuf = NULL;
+    char * notifystr = NULL;
+    GdkPixbuf * pixbuf = NULL;
     int nonotification = 0;
 
-    mpd_command_list_begin(conn, true);
-    mpd_send_status(conn);
-    mpd_send_current_song(conn);
-    mpd_command_list_end(conn);
+        mpd_command_list_begin(conn, true);
+        mpd_send_status(conn);
+        mpd_send_current_song(conn);
+        mpd_command_list_end(conn);
 
-    status = mpd_recv_status(conn);
-    state = mpd_status_get_state(status);
-    if (state == MPD_STATE_PLAY || state == MPD_STATE_PAUSE) {
+      status = mpd_recv_status(conn);
+      state = mpd_status_get_state(status);
+      if (state == MPD_STATE_PLAY || state == MPD_STATE_PAUSE) {
 
-        elapsed_time = mpd_status_get_elapsed_time(status);
-        total_time = mpd_status_get_total_time(status);
+          elapsed_time = mpd_status_get_elapsed_time(status);
+          total_time = mpd_status_get_total_time(status);
 
-        /* There's a bug in libnotify where the server spec version is fetched
-         * too late, which results in issue with image date. Make sure to
-         * show a notification without image data (just generic icon) first. */
-        if (last_state != MPD_STATE_PLAY) {
-            notify_notification_update(notification, TEXT_TOPIC, "Starting playback...", ICON_AUDIO_X_GENERIC);
-            notify_notification_show(notification, NULL);
-        }
+            /* There's a bug in libnotify where the server spec version is fetched
+             * too late, which results in issue with image date. Make sure to
+             * show a notification without image data (just generic icon) first. */
+            if (last_state != MPD_STATE_PLAY && last_state != MPD_STATE_PAUSE) {
+                notify_notification_update(notification, TEXT_TOPIC, "Starting playback...", ICON_AUDIO_X_GENERIC);
+                notify_notification_show(notification, NULL);
+            }
 
-        mpd_response_next(conn);
+            mpd_response_next(conn);
 
-        song = mpd_recv_song(conn);
+            song = mpd_recv_song(conn);
 
-        title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
+            title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
 
-        /* ignore if we have no title */
-        if (title == NULL)
-        {
-            nonotification = 0;
-        }
-        else
-        {
+            /* ignore if we have no title */
+            if (title == NULL)
+            {
+                nonotification = 0;
+            }
+            else
+            {
 #ifdef HAVE_SYSTEMD
             sd_notifyf(0, "READY=1\nSTATUS=%s: %s", state == MPD_STATE_PLAY ? "Playing" : "Paused", title);
 #endif
@@ -346,30 +358,30 @@ int update_notification(int show_elapsed_time)
             }
         }
 
-    } else if (state == MPD_STATE_STOP) {
-        notifystr = strdup(TEXT_STOP);
+        } else if (state == MPD_STATE_STOP) {
+            notifystr = strdup(TEXT_STOP);
 #ifdef HAVE_SYSTEMD
-        sd_notify(0, "READY=1\nSTATUS=" TEXT_STOP);
+            sd_notify(0, "READY=1\nSTATUS=" TEXT_STOP);
 #endif
-    } else
-        notifystr = strdup(TEXT_UNKNOWN);
+        } else
+            notifystr = strdup(TEXT_UNKNOWN);
 
-    last_state = state;
+        last_state = state;
 
-    if (verbose > 0)
-        printf("%s: %s\n", program, notifystr);
+        if (verbose > 0)
+            printf("%s: %s\n", program, notifystr);
 
-    /* Some notification daemons do not support handing pixbuf data. Write a PNG
-     * file and give the path. */
-    if (file_workaround > 0 && pixbuf != NULL) {
-        gdk_pixbuf_save(pixbuf, "/tmp/.mpd-notification-artwork.png", "png", NULL, NULL);
+        /* Some notification daemons do not support handing pixbuf data. Write a PNG
+         * file and give the path. */
+        if (file_workaround > 0 && pixbuf != NULL) {
+            gdk_pixbuf_save(pixbuf, "/tmp/.mpd-notification-artwork.png", "png", NULL, NULL);
 
-        notify_notification_update(notification, TEXT_TOPIC, notifystr, "/tmp/.mpd-notification-artwork.png");
-    } else
-        notify_notification_update(notification, TEXT_TOPIC, notifystr, ICON_AUDIO_X_GENERIC);
+            notify_notification_update(notification, TEXT_TOPIC, notifystr, "/tmp/.mpd-notification-artwork.png");
+        } else
+            notify_notification_update(notification, TEXT_TOPIC, notifystr, ICON_AUDIO_X_GENERIC);
 
-    /* Call this unconditionally! When pixbuf is NULL this clears old image. */
-    notify_notification_set_image_from_pixbuf(notification, pixbuf);
+        /* Call this unconditionally! When pixbuf is NULL this clears old image. */
+        notify_notification_set_image_from_pixbuf(notification, pixbuf);
 
     if (notifystr != NULL) {
         free(notifystr);
@@ -408,8 +420,12 @@ int main(int argc, char ** argv) {
 	music_dir = getenv("XDG_MUSIC_DIR");
 
 	/* parse config file */
-	if (chdir(getenv("HOME")) == 0 && access(".config/mpd-notification.conf", R_OK) == 0 &&
-			(ini = iniparser_load(".config/mpd-notification.conf")) != NULL) {
+	if (chdir(getenv("XDG_CONFIG_HOME")) == 0 && access("mpd-notification.conf", R_OK) == 0) {
+		ini = iniparser_load("mpd-notification.conf");
+	} else if (chdir(getenv("HOME")) == 0 && access(".config/mpd-notification.conf", R_OK) == 0) {
+		ini = iniparser_load(".config/mpd-notification.conf");
+	}
+	if (ini != NULL) {
 		file_workaround = iniparser_getboolean(ini, ":notification-file-workaround", file_workaround);
 		mpd_host = iniparser_getstring(ini, ":host", mpd_host);
 		mpd_port = iniparser_getint(ini, ":port", mpd_port);
@@ -557,7 +573,6 @@ int main(int argc, char ** argv) {
 #endif
 
 	while (doexit == 0 && mpd_run_idle_mask(conn, MPD_IDLE_PLAYER)) {
-        printf("Entering while\n");
         if (!update_notification(false))
         {
             continue;
